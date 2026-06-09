@@ -16,6 +16,11 @@ namespace kproto {
 //                          + gamma * categorical_distance(point.categorical,
 //                                                         centroid.categorical)
 //
+// Numeric features are standardized (z-scored) from the fit data before
+// clustering; the per-column mean/std learned at fit are stored so that
+// predict() can standardize its query the same way. All clustering state
+// (centroids, cost) lives in the standardized numeric space.
+//
 // Determinism: there is no randomness. Initial centroids are taken from
 // caller-supplied row indices (or the first `n_clusters` rows by default), and
 // every tie is broken deterministically (see fit()).
@@ -36,7 +41,9 @@ class KPrototypes {
   //   - every index must be in [0, data.size()) and the indices must be distinct.
   //
   // Algorithm:
-  //   centroid[c] starts as a copy of data[init_indices[c]];
+  //   standardize each numeric column using the fit data's mean and population
+  //   std (a zero-std column is treated as std 1); cluster in this standardized
+  //   space. centroid[c] starts as the standardized row data[init_indices[c]];
   //   repeat up to max_iter times:
   //     1. assignment: label each point with argmin_c D(point, centroid[c]);
   //        ties are broken by the smallest cluster index;
@@ -87,6 +94,9 @@ class KPrototypes {
   double cost_ = 0.0;
   int n_numeric_ = 0;
   int n_categorical_ = 0;
+
+  std::vector<double> feature_mean_;  // per-numeric-column mean from fit (standardization)
+  std::vector<double> feature_std_;   // per-numeric-column population std from fit (0 -> treated as 1)
 
   std::vector<int> labels_;
   std::vector<Centroid> centroids_;
