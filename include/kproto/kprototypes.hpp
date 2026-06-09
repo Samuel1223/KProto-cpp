@@ -51,8 +51,7 @@ class KPrototypes {
   //        stop;
   //     3. update: for each cluster with at least one member, set its numeric
   //        centroid to the per-column mean and its categorical centroid to the
-  //        per-column mode (most frequent value; ties broken by the
-  //        lexicographically smallest string). A cluster with no members keeps
+  //        per-column mode (the most frequent value). A cluster with no members keeps
   //        its centroid from the previous pass unchanged.
   //
   // After fit(), labels(), centroids(), cost(), n_iter(), converged() and
