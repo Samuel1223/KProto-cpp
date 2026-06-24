@@ -36,15 +36,25 @@ class KPrototypes {
   // value; passing std::greater<std::string> would pick the largest.
   using TieBreaker = std::function<bool(const std::string&, const std::string&)>;
 
+  // Strategy for choosing the initial centroids in fit():
+  //   Provided      -- use the caller's init_indices directly (init_indices.size()
+  //                    must equal n_clusters).
+  //   FarthestFirst -- deterministic farthest-first (maxmin) seeding from a single
+  //                    given row (init_indices.size() must equal 1); see fit().
+  enum class Init { Provided, FarthestFirst };
+
   // n_clusters:       number of clusters (> 0).
   // gamma:            weight on the categorical dissimilarity (>= 0).
   // max_iter:         maximum number of assignment passes (> 0).
   // mode_tie_breaker: ordering used to resolve categorical mode ties (see the
   //                   TieBreaker note above); defaults to lexicographically
   //                   smallest.
+  // init:             initial-centroid strategy (see the Init enum and fit());
+  //                   defaults to Provided.
   // Throws std::invalid_argument if any of the numeric arguments are out of range.
   KPrototypes(int n_clusters, double gamma, int max_iter = 100,
-              TieBreaker mode_tie_breaker = std::less<std::string>());
+              TieBreaker mode_tie_breaker = std::less<std::string>(),
+              Init init = Init::Provided);
 
   // Cluster `data` using `init_indices` as the rows for the initial centroids.
   //
@@ -57,7 +67,8 @@ class KPrototypes {
   // Validation (all std::invalid_argument):
   //   - data must be non-empty;
   //   - every point must share data[0]'s numeric arity and categorical arity;
-  //   - init_indices.size() must equal n_clusters;
+  //   - with Init::Provided, init_indices.size() must equal n_clusters; with
+  //     Init::FarthestFirst, init_indices.size() must equal 1 (the first seed);
   //   - every index must be in [0, data.size()) and the indices must be distinct;
   //   - sample_weight, if non-empty, must have size data.size() and every entry
   //     must be > 0.
@@ -66,8 +77,15 @@ class KPrototypes {
   //   standardize each numeric column using the fit data's WEIGHTED mean and
   //   weighted population std -- mean_j = (sum_i w_i x_ij) / (sum_i w_i) and
   //   var_j = (sum_i w_i (x_ij - mean_j)^2) / (sum_i w_i); a zero-std column is
-  //   treated as std 1. Cluster in this standardized space. centroid[c] starts
-  //   as the standardized row data[init_indices[c]]; repeat up to max_iter times:
+  //   treated as std 1. Cluster in this standardized space. The initial centroids
+  //   come from `init`:
+  //     - Provided: centroid[c] is the standardized row data[init_indices[c]].
+  //     - FarthestFirst: centroid[0] is the standardized row data[init_indices[0]];
+  //       then each subsequent centroid is the data row whose MINIMUM unweighted
+  //       mixed_distance (in standardized space, with this gamma) to the
+  //       already-chosen centroids is the LARGEST, ties broken by the lowest row
+  //       index, until there are n_clusters centroids.
+  //   Then repeat up to max_iter times:
   //     1. assignment: label each point with argmin_c D(point, centroid[c]);
   //        ties are broken by the smallest cluster index (the weights do not
   //        affect which centroid is nearest);
@@ -116,6 +134,7 @@ class KPrototypes {
   double gamma_;
   int max_iter_;
   TieBreaker mode_tie_breaker_;
+  Init init_;
 
   bool fitted_ = false;
   bool converged_ = false;

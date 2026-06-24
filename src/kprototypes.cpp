@@ -9,11 +9,13 @@ namespace {
 [[noreturn]] void not_implemented() { throw std::logic_error("not implemented"); }
 }  // namespace
 
-KPrototypes::KPrototypes(int n_clusters, double gamma, int max_iter, TieBreaker mode_tie_breaker)
+KPrototypes::KPrototypes(int n_clusters, double gamma, int max_iter, TieBreaker mode_tie_breaker,
+                         Init init)
     : n_clusters_(n_clusters),
       gamma_(gamma),
       max_iter_(max_iter),
-      mode_tie_breaker_(std::move(mode_tie_breaker)) {
+      mode_tie_breaker_(std::move(mode_tie_breaker)),
+      init_(init) {
   if (n_clusters <= 0) {
     throw std::invalid_argument("n_clusters must be positive");
   }
