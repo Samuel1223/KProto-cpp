@@ -100,6 +100,22 @@ class KPrototypes {
   //
   // cost() is the weighted sum over points of w_i * D(point_i, its centroid).
   //
+  // Missing values: a numeric feature that is NaN, or a categorical feature equal
+  // to the empty string "", is treated as MISSING, and missing entries are handled
+  // pairwise/columnwise rather than propagating:
+  //   - distance D skips any dimension where EITHER operand is missing (no
+  //     normalization for the number of present dimensions);
+  //   - standardization computes each column's weighted mean/std over only its
+  //     present (non-NaN) values (a column with no present value uses mean 0,
+  //     std 1); a present value is standardized as usual, a missing value stays
+  //     missing (NaN) in the standardized space;
+  //   - a cluster's numeric centroid coordinate is the weighted mean over the
+  //     members that are present in that dimension (NaN if none are present), and
+  //     its categorical centroid coordinate is the weighted mode over the members
+  //     that are present in that column (the empty string "" if none are present);
+  //   - predict() and cost() use this same missing-aware distance.
+  // With no missing values every rule above reduces to the dense behavior.
+  //
   // After fit(), labels(), centroids(), cost(), n_iter(), converged() and
   // is_fitted() reflect the result. Calling fit() again fully replaces prior
   // state.
