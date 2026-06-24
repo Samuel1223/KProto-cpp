@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <string>
 #include <vector>
 
 #include "kproto/types.hpp"
@@ -26,11 +28,23 @@ namespace kproto {
 // every tie is broken deterministically (see fit()).
 class KPrototypes {
  public:
-  // n_clusters: number of clusters (> 0).
-  // gamma:      weight on the categorical dissimilarity (>= 0).
-  // max_iter:   maximum number of assignment passes (> 0).
-  // Throws std::invalid_argument if any argument is out of range.
-  KPrototypes(int n_clusters, double gamma, int max_iter = 100);
+  // Strict-weak ordering over categorical values, used to break ties when
+  // selecting the per-column mode: among the values that share the highest
+  // frequency in a column, the centroid takes the one that compares "less" than
+  // every other tied value under this predicate. The default,
+  // std::less<std::string>, therefore picks the lexicographically smallest
+  // value; passing std::greater<std::string> would pick the largest.
+  using TieBreaker = std::function<bool(const std::string&, const std::string&)>;
+
+  // n_clusters:       number of clusters (> 0).
+  // gamma:            weight on the categorical dissimilarity (>= 0).
+  // max_iter:         maximum number of assignment passes (> 0).
+  // mode_tie_breaker: ordering used to resolve categorical mode ties (see the
+  //                   TieBreaker note above); defaults to lexicographically
+  //                   smallest.
+  // Throws std::invalid_argument if any of the numeric arguments are out of range.
+  KPrototypes(int n_clusters, double gamma, int max_iter = 100,
+              TieBreaker mode_tie_breaker = std::less<std::string>());
 
   // Cluster `data` using `init_indices` as the rows for the initial centroids.
   //
@@ -51,8 +65,10 @@ class KPrototypes {
   //        stop;
   //     3. update: for each cluster with at least one member, set its numeric
   //        centroid to the per-column mean and its categorical centroid to the
-  //        per-column mode (the most frequent value). A cluster with no members keeps
-  //        its centroid from the previous pass unchanged.
+  //        per-column mode (the most frequent value; ties are broken with
+  //        mode_tie_breaker, i.e. lexicographically smallest by default). A
+  //        cluster with no members keeps its centroid from the previous pass
+  //        unchanged.
   //
   // After fit(), labels(), centroids(), cost(), n_iter(), converged() and
   // is_fitted() reflect the result. Calling fit() again fully replaces prior
@@ -86,6 +102,7 @@ class KPrototypes {
   int n_clusters_;
   double gamma_;
   int max_iter_;
+  TieBreaker mode_tie_breaker_;
 
   bool fitted_ = false;
   bool converged_ = false;

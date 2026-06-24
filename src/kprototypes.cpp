@@ -1,6 +1,7 @@
 #include "kproto/kprototypes.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace kproto {
 
@@ -8,8 +9,11 @@ namespace {
 [[noreturn]] void not_implemented() { throw std::logic_error("not implemented"); }
 }  // namespace
 
-KPrototypes::KPrototypes(int n_clusters, double gamma, int max_iter)
-    : n_clusters_(n_clusters), gamma_(gamma), max_iter_(max_iter) {
+KPrototypes::KPrototypes(int n_clusters, double gamma, int max_iter, TieBreaker mode_tie_breaker)
+    : n_clusters_(n_clusters),
+      gamma_(gamma),
+      max_iter_(max_iter),
+      mode_tie_breaker_(std::move(mode_tie_breaker)) {
   if (n_clusters <= 0) {
     throw std::invalid_argument("n_clusters must be positive");
   }
