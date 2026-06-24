@@ -25,7 +25,9 @@ KPrototypes::KPrototypes(int n_clusters, double gamma, int max_iter, TieBreaker 
   }
 }
 
-void KPrototypes::fit(const std::vector<Point>&, const std::vector<int>&) { not_implemented(); }
+void KPrototypes::fit(const std::vector<Point>&, const std::vector<int>&, const std::vector<double>&) {
+  not_implemented();
+}
 void KPrototypes::fit(const std::vector<Point>&) { not_implemented(); }
 int KPrototypes::predict(const Point&) const { not_implemented(); }
 const std::vector<int>& KPrototypes::labels() const { not_implemented(); }

@@ -48,32 +48,45 @@ class KPrototypes {
 
   // Cluster `data` using `init_indices` as the rows for the initial centroids.
   //
+  // sample_weight optionally assigns a positive weight to each row (think of it
+  // as a fractional multiplicity). It must either be empty -- meaning every row
+  // has weight 1 -- or have exactly data.size() entries, each strictly positive.
+  // Every weighted quantity below uses these weights; with the default (all 1s)
+  // the result is identical to the unweighted algorithm.
+  //
   // Validation (all std::invalid_argument):
   //   - data must be non-empty;
   //   - every point must share data[0]'s numeric arity and categorical arity;
   //   - init_indices.size() must equal n_clusters;
-  //   - every index must be in [0, data.size()) and the indices must be distinct.
+  //   - every index must be in [0, data.size()) and the indices must be distinct;
+  //   - sample_weight, if non-empty, must have size data.size() and every entry
+  //     must be > 0.
   //
   // Algorithm:
-  //   standardize each numeric column using the fit data's mean and population
-  //   std (a zero-std column is treated as std 1); cluster in this standardized
-  //   space. centroid[c] starts as the standardized row data[init_indices[c]];
-  //   repeat up to max_iter times:
+  //   standardize each numeric column using the fit data's WEIGHTED mean and
+  //   weighted population std -- mean_j = (sum_i w_i x_ij) / (sum_i w_i) and
+  //   var_j = (sum_i w_i (x_ij - mean_j)^2) / (sum_i w_i); a zero-std column is
+  //   treated as std 1. Cluster in this standardized space. centroid[c] starts
+  //   as the standardized row data[init_indices[c]]; repeat up to max_iter times:
   //     1. assignment: label each point with argmin_c D(point, centroid[c]);
-  //        ties are broken by the smallest cluster index;
+  //        ties are broken by the smallest cluster index (the weights do not
+  //        affect which centroid is nearest);
   //     2. if the labels are identical to the previous pass, mark converged and
   //        stop;
   //     3. update: for each cluster with at least one member, set its numeric
-  //        centroid to the per-column mean and its categorical centroid to the
-  //        per-column mode (the most frequent value; ties are broken with
-  //        mode_tie_breaker, i.e. lexicographically smallest by default). A
-  //        cluster with no members keeps its centroid from the previous pass
-  //        unchanged.
+  //        centroid to the WEIGHTED per-column mean of its members, and its
+  //        categorical centroid to the WEIGHTED per-column mode -- the value with
+  //        the greatest total member weight (NOT the raw count), ties broken with
+  //        mode_tie_breaker (lexicographically smallest by default). A cluster
+  //        with no members keeps its centroid from the previous pass unchanged.
+  //
+  // cost() is the weighted sum over points of w_i * D(point_i, its centroid).
   //
   // After fit(), labels(), centroids(), cost(), n_iter(), converged() and
   // is_fitted() reflect the result. Calling fit() again fully replaces prior
   // state.
-  void fit(const std::vector<Point>& data, const std::vector<int>& init_indices);
+  void fit(const std::vector<Point>& data, const std::vector<int>& init_indices,
+           const std::vector<double>& sample_weight = {});
 
   // Convenience overload: initialize from the first `n_clusters` rows, i.e.
   // init_indices = {0, 1, ..., n_clusters - 1}.
@@ -89,7 +102,7 @@ class KPrototypes {
   // except is_fitted()/n_clusters()/gamma()/max_iter()).
   const std::vector<int>& labels() const;          // cluster id per input row
   const std::vector<Centroid>& centroids() const;  // size == n_clusters
-  double cost() const;  // sum over points of D(point, its assigned centroid)
+  double cost() const;  // weighted sum over points of w_i * D(point, its centroid)
   int n_iter() const;   // assignment passes performed (>= 1 after fit)
   bool converged() const;
 
