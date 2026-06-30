@@ -10,12 +10,13 @@ namespace {
 }  // namespace
 
 KPrototypes::KPrototypes(int n_clusters, double gamma, int max_iter, TieBreaker mode_tie_breaker,
-                         Init init)
+                         Init init, Scaler scaler)
     : n_clusters_(n_clusters),
       gamma_(gamma),
       max_iter_(max_iter),
       mode_tie_breaker_(std::move(mode_tie_breaker)),
-      init_(init) {
+      init_(init),
+      scaler_(scaler) {
   if (n_clusters <= 0) {
     throw std::invalid_argument("n_clusters must be positive");
   }
